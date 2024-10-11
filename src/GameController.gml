@@ -126,6 +126,8 @@ function GameController() constructor {
           "quit": null
         }
       },
+      ///@description Mocku visu states
+      /*
       "load-visu": {
         actions: {
           onStart: function(fsm, fsmState, data) {
@@ -191,6 +193,7 @@ function GameController() constructor {
           "quit": null
         }
       },
+      */
     }
   })
 
@@ -319,7 +322,7 @@ function GameController() constructor {
   ///@private
   ///@param {Struct} service
   ///@param {Number} iterator
-  ///@param {VisuController} controller
+  ///@param {Controller} controller
   updateService = function(service, iterator, controller) {
     try {
       service.struct.update()

@@ -93,12 +93,12 @@ function NeonBaronController() constructor {
     ///@param {GMLayer} layerId
     ///@param {LDTKEntity} entity
     "entity_npc": function(layerId, entity) {
-      Beans.get(BeanTopDownController).npcService.set(
-        entity.uid, {
+      Beans.get(BeanTopDownController).npcService.npcs.set(
+        entity.uid, new NPC({
           x: entity.x,
           y: entity.y,
           sprite: SpriteUtil.parse({ name: "texture_bazyl_cursor" }),
-        })
+        }))
     },
   })
 
@@ -106,6 +106,10 @@ function NeonBaronController() constructor {
 
   initView = function(width, height) {
     Core.print("initView")
+    application_surface_draw_enable(false)
+    gpu_set_ztestenable(false)
+    gpu_set_zwriteenable(false)
+    gpu_set_cullmode(cull_counterclockwise)
     view_enabled = true
     view_visible[0] = true
     view_xport[0] = 0;
@@ -127,6 +131,22 @@ function NeonBaronController() constructor {
   }
 
   zoom = 1
+  
+   ///@return {VisuController}
+  onSceneEnter = function() {
+    Logger.info(BeanNeonBaronController, "onSceneEnter")
+    VideoUtil.runGC()
+    var dialogueDesignerService = Beans.get(BeanDialogueDesignerService)
+    if (Optional.is(dialogueDesignerService)) {
+      ///@description mockup
+      dialogueDesignerService.templates.set("menu", FileUtil
+        .readFileSync("dialogue/menu.json").getData())
+      dialogueDesignerService.templates.set("dd_test", FileUtil
+        .readFileSync("dialogue/dd_test.json").getData())
+    }
+    
+    return this
+  }
 
   update = function() {
     if (!isLDTKLoaded) {
@@ -153,11 +173,13 @@ function NeonBaronController() constructor {
       this.initView(GuiWidth(), GuiHeight())
     }
     
-    var visuController = Beans.get(BeanVisuController)
-    if (Core.isType(visuController, VisuController)) {
-      var stateName = visuController.fsm.getStateName()
-      this.isVisuMode = stateName == "load" || stateName == "play" || stateName == "resume" || stateName == "rewind"
-    }
+    ///@description Mockup isVisuMode
+    this.isVisuMode = false 
+    //var visuController = Beans.get(BeanVisuController)
+    //if (Core.isType(visuController, VisuController)) {
+    //  var stateName = visuController.fsm.getStateName()
+    //  this.isVisuMode = stateName == "load" || stateName == "play" || stateName == "resume" || stateName == "rewind"
+    //}
 
     if (!this.isVisuMode) {
       this.baron.update()
