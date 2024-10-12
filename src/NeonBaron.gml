@@ -6,6 +6,10 @@ function _NeonBaron() constructor {
   ///@type {?Struct}
   _assets = null  
   
+  ///@private
+  ///@type {?CLIParamParser}
+  _cliParser = null
+
   ///@return {Struct}
   static assets = function() {
     if (this._assets == null) {
@@ -14,153 +18,119 @@ function _NeonBaron() constructor {
       }
     }
     
-    return _assets
+    return this._assets
+  }
+
+  ///@return {CLIParamParser}
+  static cliParser = function() {
+    if (this._cliParser == null) {
+      this._cliParser = new CLIParamParser({
+        cliParams: new Array(CLIParam, [
+          new CLIParam({
+            name: "-t",
+            fullName: "--test",
+            description: "Run tests from test suite",
+            args: [
+              {
+                name: "file",
+                type: "String",
+                description: "Path to test suite JSON"
+              }
+            ],
+            handler: function(args) {
+              Logger.debug("CLIParamParser", $"Run --test {args.get(0)}")
+              Beans.get(BeanTestRunner).push(args.get(0))
+            },
+          }),
+        ])
+      })
+    }
+    
+    return this._cliParser
   }
   
   ///@param {String} [layerName]
   ///@param {Number} [layerDefaultDepth]
   ///@return {NeonBaron}
   static run = function(layerName = "instance_main", layerDefaultDepth = 100) {
-    initGPU()
     initBeans()
-    GMTFContext = new _GMTFContext()
+    initGPU()
+    initGMTF()
+    
     Core.loadProperties(FileUtil.get($"{working_directory}core-properties.json"))
     Core.loadProperties(FileUtil.get($"{working_directory}neon-baron-properties.json"))
-    Assert.isType(layerName, String, "layerName must be a string")
-    var layerId = layer_get_id(layerName)
-    if (layerId == -1) {
-      layerId = layer_create(Assert.isType(layerDefaultDepth, Number), layerName)
-    }
+
+    var layerId = Scene.fetchLayer(layerName, layerDefaultDepth)
 
     if (!Beans.exists(BeanDeltaTimeService)) {
-      Beans.add(BeanDeltaTimeService, new Bean(DeltaTimeService,
-        GMObjectUtil.factoryGMObject(
-          GMServiceInstance, 
-          layerId, 0, 0, 
-          new DeltaTimeService()
-        )
-      ))
+      Beans.add(Beans.factory(BeanDeltaTimeService, GMServiceInstance, layerId,
+        new DeltaTimeService()))
     }
 
     if (!Beans.exists(BeanFileService)) {
-      Beans.add(BeanFileService, new Bean(FileService,
-        GMObjectUtil.factoryGMObject(
-          GMServiceInstance, 
-          layerId, 0, 0, 
-          new FileService({ 
-            dispatcher: { 
-              limit: Core.getProperty("neon-baron.files-service.dispatcher.limit", 1),
-            }
-          })
-        )
-      ))
+      Beans.add(Beans.factory(BeanFileService, GMServiceInstance, layerId,
+        new FileService({
+          dispatcher: {
+            limit: Core.getProperty("neon-baron.files-service.dispatcher.limit", 1),
+          }
+        })))
     }
-    
+
     if (!Beans.exists(BeanTextureService)) {
-      Beans.add(BeanTextureService, new Bean(TextureService,
-        GMObjectUtil.factoryGMObject(
-          GMServiceInstance, 
-          layerId, 0, 0, 
-          new TextureService({
-            getStaticTemplates: function() {
-              return NeonBaron.assets().textures
-            },
-          })
-        )
-      ))
+      Beans.add(Beans.factory(BeanTextureService, GMServiceInstance, layerId,
+        new TextureService({
+          getStaticTemplates: function() {
+            return NeonBaron.assets().textures
+          },
+        })))
     }
     
     if (!Beans.exists(BeanSoundService)) {
-      Beans.add(BeanSoundService, new Bean(SoundService,
-        GMObjectUtil.factoryGMObject(
-          GMServiceInstance, 
-          layerId, 0, 0, 
-          new SoundService()
-        )
-      ))
+      Beans.add(Beans.factory(BeanSoundService, GMServiceInstance, layerId,
+        new SoundService()))
     }
 
     if (!Beans.exists(BeanDialogueDesignerService)) {
-      Beans.add(BeanDialogueDesignerService , new Bean(DialogueDesignerService,
-        GMObjectUtil.factoryGMObject(
-          GMServiceInstance, 
-          layerId, 0, 0, 
-          new DialogueDesignerService({
-            handlers: new Map(String, Callable, {
-              "QUIT": function(data) {
-                Beans.get(BeanDialogueDesignerService).close()
-              },
-              "LOAD_VISU_TRACK": function(data) {
-                Core.print("Mockup LOAD_VISU_TRACK")
-                //Beans.get(BeanVisuController).send(new Event("load", {
-                //  manifest: FileUtil.get(data.path),
-                //  autoplay: true,
-                //}))
-              },
-              "GAME_END": function(data) {
-                game_end()
-              },
-            }),
-          })
-        )
-      ))
+      Beans.add(Beans.factory(BeanDialogueDesignerService, GMServiceInstance, layerId,
+        new DialogueDesignerService({
+          handlers: new Map(String, Callable, {
+            "QUIT": function(data) {
+              Beans.get(BeanDialogueDesignerService).close()
+            },
+            //"LOAD_VISU_TRACK": function(data) {
+            //  Beans.get(BeanVisuController).send(new Event("load", {
+            //    manifest: FileUtil.get(data.path),
+            //    autoplay: true,
+            //  }))
+            //},
+            "GAME_END": function(data) {
+              game_end()
+            },
+          }),
+        })))
     }
-    
+
     if (!Beans.exists(BeanTestRunner)) {
-      Beans.add(BeanTestRunner, new Bean(TestRunner,
-        GMObjectUtil.factoryGMObject(
-          GMServiceInstance, 
-          layerId, 0, 0, 
-          new TestRunner()
-        )
-      ))
+      Beans.add(Beans.factory(BeanTestRunner, GMServiceInstance, layerId,
+        new TestRunner()))
     }
 
-    //Beans.add(BeanGameController, new Bean(GameController,
-    //  GMObjectUtil.factoryGMObject(
-    //    GMControllerInstance, 
-    //    layerId, 0, 0, 
-    //    new GameController(layerName)
-    //  )
-    //))
+    //if (!Beans.exists(BeanGameController)) {
+    //  Beans.add(Beans.factory(BeanGameController, GMControllerInstance, layerId,
+    //    new GameController(layerName)))
+    //}
 
-    Beans.add(BeanTopDownController, new Bean(TopDownController,
-      GMObjectUtil.factoryGMObject(
-        GMControllerInstance, 
-        layerId, 0, 0, 
-        new TopDownController(layerName)
-      )
-    ))
-    
-    Beans.add(BeanNeonBaronController, new Bean(NeonBaronController,
-      GMObjectUtil.factoryGMObject(
-        GMControllerInstance, 
-        layerId, 0, 0, 
-        new NeonBaronController(layerName)
-      )
-    ))
+    if (!Beans.exists(BeanTopDownController)) {
+      Beans.add(Beans.factory(BeanTopDownController, GMControllerInstance, layerId,
+        new TopDownController(layerName)))
+    }
 
-    var parser = new CLIParamParser({
-      cliParams: new Array(CLIParam, [
-        new CLIParam({
-          name: "-t",
-          fullName: "--test",
-          description: "Run tests from test suite",
-          args: [
-            {
-              name: "file",
-              type: "String",
-              description: "Path to test suite JSON"
-            }
-          ],
-          handler: function(args) {
-            Logger.debug("CLIParamParser", $"Run --test {args.get(0)}")
-            Beans.get(BeanTestRunner).push(args.get(0))
-          },
-        }),
-      ])
-    })
-    parser.parse()
+    if (!Beans.exists(BeanNeonBaronController)) {
+      Beans.add(Beans.factory(BeanNeonBaronController, GMControllerInstance, layerId,
+        new NeonBaronController(layerName)))
+    }
+
+    this.cliParser().parse()
     
     return this
   }

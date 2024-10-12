@@ -159,7 +159,7 @@ function NeonBaronController() constructor {
       room_width = level.width
       room_height = level.height
 
-      this.gmTdmcCollider = GMObjectUtil.factoryGMObject(TDMCCollider, layer_get_id("instance_main"), 0, 0)
+      this.gmTdmcCollider = GMObjectUtil.factoryInstance(TDMCCollider, layer_get_id("instance_main"), 0, 0)
       Struct.set(this.baron, "gmObject", this.gmTdmcCollider)
       GMObjectUtil.set(this.gmTdmcCollider, "baron", this.baron)
       GMObjectUtil.set(this.gmTdmcCollider, "move", null)

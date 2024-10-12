@@ -29,7 +29,7 @@ function GameController() constructor {
       "init": {
         actions: {
           onStart: function(fsm, fsmState, data) {
-            SceneContext.setIntent(new NeonBaronState({
+            Scene.setIntent(new NeonBaronState({
               "baron": {
                 "world": "world/test-world.ldtk",
                 "level": "level_0",
@@ -39,9 +39,9 @@ function GameController() constructor {
             }))
 
 
-            var state = SceneContext.getIntent()
+            var state = Scene.getIntent()
             if (Optional.is(state)) {
-              SceneContext.setIntent(null)
+              Scene.setIntent(null)
             }
             
             if (Core.isType(state, NeonBaronState)) {
@@ -275,7 +275,7 @@ function GameController() constructor {
                 y: gameController.world.state.baron.y,
                 maxSpeed: 3,
               })
-              baron.gmObject = GMObjectUtil.factoryGMObject(TDMCCollider, layer_get_id("instance_main"), 0, 0)
+              baron.gmObject = GMObjectUtil.factoryInstance(TDMCCollider, layer_get_id("instance_main"), 0, 0)
               GMObjectUtil.set(baron.gmObject, "baron", baron)
               GMObjectUtil.set(baron.gmObject, "move", null)
               with (baron.gmObject) {
