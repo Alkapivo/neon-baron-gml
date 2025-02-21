@@ -169,7 +169,7 @@ function NeonBaronController() constructor {
       
     }    
 
-    if (this.displayService.update().state = "resized") {
+    if (this.displayService.update().state == "resized") {
       this.initView(GuiWidth(), GuiHeight())
     }
     
